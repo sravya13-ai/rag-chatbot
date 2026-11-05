@@ -51,8 +51,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from streamlit.errors import StreamlitSecretNotFoundError
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 APP_TITLE = os.getenv("APP_TITLE", "RAG Chatbot")
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 CHAT_MODEL = "openai/gpt-oss-20b"
@@ -60,8 +60,8 @@ USER_AVATAR = "👤"
 ASSISTANT_AVATAR = "🤖"
 THINKING_AVATAR = "💭"
 APP_SUBTITLE = (
-	"General questions use web search for current context; document questions "
-	"are answered from the uploaded PDF."
+	"General questions use web search for current context; questions about uploaded "
+	"documents or processed websites use their source context."
 )
 
 
@@ -642,7 +642,7 @@ st.markdown(
 	""",
 	unsafe_allow_html=True,
 )
-st.title(APP_TITLE)
+st.title("RAG Chatbot")
 subtitle_character_count = len(APP_SUBTITLE)
 st.markdown(
 	f"""
@@ -1985,6 +1985,23 @@ with st.sidebar:
 		use_container_width=True,
 	)
 
+	st.sidebar.markdown("---")
+	st.sidebar.markdown("### Groq connection")
+	try:
+		GROQ_API_KEY = str(st.secrets.get("GROQ_API_KEY", "") or "").strip()
+	except StreamlitSecretNotFoundError:
+		GROQ_API_KEY = ""
+	GROQ_API_KEY = GROQ_API_KEY or os.getenv("GROQ_API_KEY", "").strip()
+	if GROQ_API_KEY:
+		os.environ["GROQ_API_KEY"] = GROQ_API_KEY
+		st.sidebar.caption("API key configured · Active")
+		st.sidebar.success("The connection status is successful.")
+	else:
+		st.sidebar.caption("API key missing")
+		st.sidebar.warning(
+			"Configure `GROQ_API_KEY` in Streamlit Cloud Secrets to connect to Groq."
+		)
+
 if (
 	st.session_state.get("image_studio_open_notebook_id")
 	== active_notebook_id
@@ -2084,7 +2101,10 @@ if prompt:
 			response_placeholder = st.empty()
 			response_placeholder.markdown("Thinking...")
 			if not GROQ_API_KEY:
-				answer = "GROQ_API_KEY is missing. Set it in your shell environment and restart the app."
+				answer = (
+					"GROQ_API_KEY is missing. Configure it in Streamlit Cloud Secrets "
+					"to use Groq features."
+				)
 				show_warning = True
 			else:
 				with st.spinner("Thinking..."):
@@ -2183,7 +2203,10 @@ if prompt:
 						web_sources = []
 						show_warning = True
 					except AuthenticationError:
-						answer = "Groq rejected the API key. Check the GROQ_API_KEY shell environment value."
+						answer = (
+							"Groq rejected the API key. Check the GROQ_API_KEY value "
+							"in Streamlit Secrets or the environment."
+						)
 						sources = []
 						web_sources = []
 						show_warning = True
