@@ -1,0 +1,17 @@
+streamlit
+python-dotenv
+tavily-python
+langchain
+langchain-community
+langchain-core
+langchain-text-splitters
+langchain-groq
+langchain-huggingface
+faiss-cpu
+pypdf
+pdfplumber
+pdf2image
+pytesseract
+python-docx
+pypdfium2
+sentence-transformers
